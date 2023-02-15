@@ -5,6 +5,6 @@
     "author": "Cyril Kamal",
     "action": {
         "default_popup": "popup.html",
-        "default_title": "Up and coming Toronto Concerts"
+        "default_title": "UITest"
     }
 }

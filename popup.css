@@ -5,8 +5,8 @@
     color: white;
     font-size: 15px;
     position: absolute;
-    top: 30px;
-    right: 80px;
+    top: 0px;
+    right: 60px;
 }
 
 .loader {
@@ -17,10 +17,16 @@
 	--size-square: 15px;
 	
 	display: block;
-	position: relative;
-	width: 50%;
+	position: absolute;
+    right: 0px;
+	width: 0%;
 	display: grid;
 	place-items: center;
+	margin: 0;
+    position: absolute;
+    top: 50%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
 }
 
 .loader::before,
@@ -104,17 +110,22 @@
 
 .page {
     position:absolute;
-    top:50px;
-    right:50px;
+    top:20px;
+    right:20px;
 }
 
+html {
+    height: 100%;
+}
 
-html, body {
-	height: 110px;
-    width: 300px;
-	background-image: linear-gradient(to right top, #051937, #004d7a, #008793, #00bf72, #a8eb12);
+body {
+	width: 290px;
+	height: 23px;
+	background-image: linear-gradient(to right top, #40c9ffff, #6a9effff, #9473ffff, #be48ffff, #e81cffff);
 	font-family: 'Noto Sans', sans-serif;
 	color: white;
 	text-align: center;
 	letter-spacing: 0.3px;
+    margin: 0;
+	overflow: hidden;
 }
