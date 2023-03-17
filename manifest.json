@@ -1,0 +1,15 @@
+{
+    "name": "UI test",
+    "version": "1.0.0",
+    "manifest_version": 3,
+    "author": "Cyril Kamal",
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Up and coming Toronto Concerts"
+    },
+    "background": {
+        "service_worker": "background.js" 
+    },
+    "permissions": ["activeTab", "identity", "identity.email"],
+    "host_permissions": ["http://localhost:3001/*"]
+}
