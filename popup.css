@@ -2,7 +2,7 @@
     font-family: 'Nunito', sans-serif;
     font-weight: 700;
     /* color: #6e7bf2; */
-    color: white;
+    color: rgb(37,160,245);
     font-size: 15px;
     position: absolute;
     top: 0px;
@@ -10,7 +10,7 @@
 }
 
 .loader {
-	--color: white;
+	--color: rgb(37,160,245);
 	--size-mid: 6vmin;
 	--size-dot: 1.5vmin;
 	--size-bar: 0.4vmin;
@@ -121,7 +121,8 @@ html {
 body {
 	width: 290px;
 	height: 23px;
-	background-image: linear-gradient(to right top, #40c9ffff, #6a9effff, #9473ffff, #be48ffff, #e81cffff);
+	background-color: #141c37;
+	/*background-image: linear-gradient(rgb(68, 129, 235), rgb(5, 190, 254));*/
 	font-family: 'Noto Sans', sans-serif;
 	color: white;
 	text-align: center;
