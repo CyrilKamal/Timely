@@ -1,4 +1,3 @@
-
 var isButtonEnabled = false;
 var globalUrl = '';
 
@@ -49,7 +48,7 @@ async function getOptimizedLink(addressList, url) {
     console.log('current url', url)
 
     // call server to get optimized link
-    fetch('http://localhost:3001/ol', {
+    fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
         method: "POST",
         headers: {
             'Content-Type': 'application/json'
@@ -88,7 +87,7 @@ function retryText(url) {
             } else {
 
                 // call server on heroku to get optimized google maps route link
-                fetch('http://localhost:3001/ol', {
+                fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
                     method: "POST",
                     headers: {
                         'Content-Type': 'application/json'
