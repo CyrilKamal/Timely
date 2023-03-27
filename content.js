@@ -59,12 +59,12 @@ async function getOptimizedLink(addressList, url) {
         .then(response => response.json())
         .then(data => {
             console.log('Success:', data);
-            if (data.length === 0 || !data.includes("google.com/maps/")) {
+            if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
                 //retry with text
                 retryText(url)
 
             } else {
-                openLink(data)
+                openLink(data.link)
             }
         })
         .catch((error) => {
@@ -98,12 +98,12 @@ function retryText(url) {
                     .then(response)
                     .then(data => {
                         console.log('Success:', data);
-                        if (data.length === 0 || !data.includes("google.com/maps/")) {
+                        if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
                             // log potential error url in firebase
                             // now show error message if input method does not work
                             showErrorPopup('Error, Please Re-Enter Stops')
                         } else {
-                            openLink(data)
+                            openLink(data.link)
                         }
                     })
                     .catch((error) => {
