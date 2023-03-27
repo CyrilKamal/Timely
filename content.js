@@ -69,7 +69,7 @@ async function getOptimizedLink(addressList, url) {
         })
         .catch((error) => {
             console.log('Error:', error);
-            showError('Error: Refresh and try again.')
+            showErrorPopup('Error: Refresh and try again.')
         });
 }
 
@@ -83,7 +83,7 @@ function retryText(url) {
 
             // check to see if addressList was succesful (not if empty)
             if (addressList === null || addressList === undefined || addressList.length === 0) {
-                showError('Error: Please Enter Stops Again');
+                showErrorPopup('Error: Please Enter Stops Again');
                 return;
             } else {
 
@@ -101,7 +101,7 @@ function retryText(url) {
                         if (data.length === 0 || !data.includes("google.com/maps/")) {
                             // log potential error url in firebase
                             // now show error message if input method does not work
-                            showError('Error, Please Re-Enter Stops')
+                            showErrorPopup('Error, Please Re-Enter Stops')
                         } else {
                             openLink(data)
                         }
@@ -109,7 +109,7 @@ function retryText(url) {
                     .catch((error) => {
                         console.log('Error:', error);
                         // log potential error url in firebase
-                        showError('Error: Refresh and try again.')
+                        showErrorPopup('Error: Refresh and try again.')
                     });
             }
         });
