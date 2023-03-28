@@ -70,7 +70,7 @@ async function getOptimizedLink(addressList, url) {
         .then(response => response.json())
         .then(data => {
             console.log('Success:', data);
-            if (data.length === 0 || !data.includes("google.com/maps/")) {
+            if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
 
                 // ***
                 // INPUT TEXT METHOD (instead of url)
@@ -78,7 +78,7 @@ async function getOptimizedLink(addressList, url) {
                 retryText(url)
 
             } else {
-                openLink(data)
+                openLink(data.link)
             }
         })
         .catch((error) => {
@@ -112,11 +112,11 @@ function retryText(url) {
                     .then(response)
                     .then(data => {
                         console.log('Success:', data);
-                        if (data.length === 0 || !data.includes("google.com/maps/")) {
+                        if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
                             // show error message if retryText method does not work
                             showError('Error, Please Re-Enter Stops')
                         } else {
-                            openLink(data)
+                            openLink(data.link)
                         }
                     })
                     .catch((error) => {
