@@ -24,6 +24,6 @@
     "background": {
         "service_worker": "background.js" 
     },
-    "permissions": ["activeTab", "identity", "identity.email", "tabs", "nativeMessaging", "storage"],
+    "permissions": ["activeTab", "identity", "identity.email", "tabs", "nativeMessaging", "storage", "webNavigation"],
     "host_permissions": ["https://giddy-tuna-bedclothes.cyclic.app/*"]
 }

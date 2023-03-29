@@ -1,13 +1,12 @@
 var isButtonEnabled = false;
 var globalUrl = '';
-
 //everything past this is no longer frontend related (refactoring stuff)
 // calling the async background function to begin getting background info pre optimization
 chrome.runtime.sendMessage({ action: "getActiveTabUrl" }, function (response) {
     if (response.url) {
         globalUrl = response.url
     } else {
-        showErrorPopup('Could not scrub URL');
+        showPopup('Could not scrub URL', '#f44336');
     }
 });
 
@@ -17,6 +16,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
 });
 
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+    if (request.action === "urlUpdated") {
+        globalUrl = request.url;
+    } else if (request.action === "showSuccessPopup") {
+        showPopup('You just saved: ' + request.timeSaved, '#4BB543');
+    }
+});
 
 async function background(url) {
     console.log('yo its main :D')
@@ -31,14 +37,14 @@ async function background(url) {
         splitAddressList = addressListStr.split('/')
 
         if (splitAddressList.length < 4) {
-            showErrorPopup('Please enter at least 4 stops.')
+            showPopup('Please enter at least 4 stops.', '#f44336')
         } else {
             // calls main functino when data is ready
             getOptimizedLink(splitAddressList)
         }
     } catch (err) {
         // could not get the stops
-        showErrorPopup('Create Route for Google Maps')
+        showPopup('Create Route for Google Maps', '#f44336')
     }
 }
 
@@ -63,12 +69,14 @@ async function getOptimizedLink(addressList, url) {
                 retryText(url)
 
             } else {
-                openLink(data.link)
+                chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
+                //globalTimeSaved = data.timeDifference
+                //openLink(data.link)
             }
         })
         .catch((error) => {
             console.log('Error:', error);
-            showErrorPopup('Error: Refresh and try again.')
+            showPopup('Error: Refresh and try again.', '#f44336')
         });
 }
 
@@ -82,7 +90,7 @@ function retryText(url) {
 
             // check to see if addressList was succesful (not if empty)
             if (addressList === null || addressList === undefined || addressList.length === 0) {
-                showErrorPopup('Error: Please Enter Stops Again');
+                showPopup('Error: Please Enter Stops Again', '#f44336');
                 return;
             } else {
 
@@ -100,31 +108,40 @@ function retryText(url) {
                         if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
                             // log potential error url in firebase
                             // now show error message if input method does not work
-                            showErrorPopup('Error, Please Re-Enter Stops')
+                            showPopup('Error, Please Re-Enter Stops', '#f44336')
                         } else {
-                            openLink(data.link)
+                            chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
+                            //globalTimeSaved = data.timeDifference
+                            //openLink(data.link)
                         }
                     })
                     .catch((error) => {
                         console.log('Error:', error);
                         // log potential error url in firebase
-                        showErrorPopup('Error: Refresh and try again.')
+                        showPopup('Error: Refresh and try again.', '#f44336')
                     });
             }
         });
     });
 }
 
-async function openLink(curatedLink) {
-    window.open(curatedLink)
-}
+/* async function openLink(curatedLink) {
+    chrome.tabs.create({ URL: curatedLink }, function (newTab) {
+        chrome.webNavigation.onCompleted.addListener(function listener(details) {
+            if (details.tabId === newTab.id) {
+                chrome.webNavigation.onCompleted.removeListener(listener);
+                chrome.tabs.sendMessage(newTab.id, { action: "showSuccessPopup" });
+            }
+        });
+    });
+} */
 
 
-function showErrorPopup(errorMessage) {
+function showPopup(errorMessage, backgroundColor) {
     var popup = document.createElement('div');
     popup.setAttribute('id', 'error-popup');
-    popup.setAttribute('style', 'position: fixed; top: 10px; right: 10px; z-index: 1000; background-color: #f44336; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
-
+    //popup.setAttribute('style', 'position: fixed; top: 10px; right: 10px; z-index: 1000; background-color: #f44336; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
+    popup.setAttribute('style', 'position: fixed; top: 10px; right: 10px; z-index: 1000; background-color: ' + backgroundColor + '; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
     var closeButton = document.createElement('button');
     closeButton.setAttribute('style', 'background: none; border: none; color:white; font-size: 16px; cursor: pointer; margin-right: 8px;');
     closeButton.innerHTML = '&times;';
@@ -139,6 +156,9 @@ function showErrorPopup(errorMessage) {
     popup.appendChild(closeButton);
     popup.appendChild(message);
     document.body.appendChild(popup);
+    setTimeout(() => {
+        popup.remove();
+    }, 5000);
 }
 function AddRouteButton() {
     var parentElement = document.querySelector(".dryRY");
