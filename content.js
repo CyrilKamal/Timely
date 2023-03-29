@@ -2,6 +2,45 @@ var isButtonEnabled = false;
 var globalUrl = '';
 //everything past this is no longer frontend related (refactoring stuff)
 // calling the async background function to begin getting background info pre optimization
+chrome.runtime.onMessage.addListener(
+    function(message, sender, sendResponse) {
+        switch(message.type) {
+            case "getAddresses":
+
+                let inputAddressList = []
+                // checking to see if the class name is present
+                try {
+                    if (document.getElementsByClassName('tactile-searchbox-input')[0]) {
+                        // if so get the addresses from the input fields
+                        let inputVals = document.getElementsByClassName('tactile-searchbox-input');
+                        for (let i = 0; i < inputVals.length; i++){
+                            let addressTxt = inputVals[i].ariaLabel
+                            if (addressTxt.length > 16) {
+                                if (addressTxt.substring(0,15) === 'Starting point ') {
+                                    console.log(addressTxt.substring(15))
+                                    addressTxt = addressTxt.substring(15)
+                                }
+                            }
+                            if (addressTxt.length > 13) {
+                                if (addressTxt.substring(0,12) === 'Destination ') {
+                                    console.log(addressTxt.substring(12))
+                                    addressTxt = addressTxt.substring(12)
+                                }
+                            }
+                            inputAddressList.push(addressTxt)
+                        }
+                    }
+                } catch(err) {
+                    console.log(err)
+                }
+
+
+                sendResponse(inputAddressList);
+            break;
+        }
+    }
+);
+
 chrome.runtime.sendMessage({ action: "getActiveTabUrl" }, function (response) {
     if (response.url) {
         globalUrl = response.url
@@ -13,6 +52,7 @@ chrome.runtime.sendMessage({ action: "getActiveTabUrl" }, function (response) {
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.action === "urlUpdated") {
         globalUrl = request.url
+        console.log('global url updated: ', globalUrl)
     }
 });
 
@@ -23,6 +63,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         showPopup('You just saved: ' + request.timeSaved, '#4BB543');
     }
 });
+
 
 async function background(url) {
     console.log('yo its main :D')

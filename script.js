@@ -95,7 +95,6 @@ function retryText(url) {
         chrome.tabs.sendMessage(tabs[0].id, { type: "getAddresses" }, function (response) {
             addressList = response
             console.log(addressList)
-
             // check to see if addressList was succesful (not if empty)
             if (addressList === null || addressList === undefined || addressList.length === 0) {
                 showError('Error, Please Re-Enter Stops');
@@ -110,14 +109,14 @@ function retryText(url) {
                     },
                     body: (JSON.stringify({ splitAddressList: addressList }))
                 })
-                    .then(response)
+                    .then(response => response.json())
                     .then(data => {
                         console.log('Success:', data);
                         if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
                             // show error message if retryText method does not work
                             showError('Error, Please Re-Enter Stops')
                         } else {
-                            openLink(data.link)
+                            chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference }); 
                         }
                     })
                     .catch((error) => {
