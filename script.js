@@ -78,7 +78,8 @@ async function getOptimizedLink(addressList, url) {
                 retryText(url)
 
             } else {
-                openLink(data.link)
+                //openLink(data.link)
+                chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
             }
         })
         .catch((error) => {
