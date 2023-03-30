@@ -13,17 +13,17 @@
     "content_scripts":[
         {
             "js":["content.js"],
-            "matches":["*://www.google.com/maps/*"],
+            "matches":["*://www.google.com/maps/*", "https://giddy-tuna-bedclothes.cyclic.app/*"],
             "run_at": "document_end"
         }
     ],
     "action": {
         "default_popup": "popup.html",
-        "default_title": "Timely"
+        "default_title": "Timely",
+        "matches":["*://www.google.com/maps/*", "https://giddy-tuna-bedclothes.cyclic.app/*"]
     },
     "background": {
         "service_worker": "background.js" 
     },
-    "permissions": ["activeTab", "identity", "identity.email", "tabs", "nativeMessaging", "storage", "webNavigation"],
-    "host_permissions": ["https://giddy-tuna-bedclothes.cyclic.app/*"]
+    "permissions": ["activeTab", "identity", "identity.email", "tabs", "nativeMessaging", "storage", "webNavigation"]
 }
