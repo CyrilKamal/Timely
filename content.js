@@ -122,48 +122,55 @@ async function getOptimizedLink(addressList, url) {
 }
 
 function retryText(url) {
-
-    let addressList = []
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { type: "getAddresses" }, function (response) {
-            addressList = response
-            console.log(addressList)
-
-            // check to see if addressList was succesful (not if empty)
-            if (addressList === null || addressList === undefined || addressList.length === 0) {
-                showPopup('Error: Please Enter Stops Again', '#f44336');
-                return;
-            } else {
-
-                // call server on heroku to get optimized google maps route link
-                fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: (JSON.stringify({ splitAddressList: addressList }))
-                })
-                    .then(response)
-                    .then(data => {
-                        console.log('Success:', data);
-                        if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
-                            // log potential error url in firebase
-                            // now show error message if input method does not work
-                            showPopup('Error, Please Re-Enter Stops', '#f44336')
-                        } else {
-                            chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
-                            //globalTimeSaved = data.timeDifference
-                            //openLink(data.link)
-                        }
-                    })
-                    .catch((error) => {
-                        console.log('Error:', error);
-                        // log potential error url in firebase
-                        showPopup('Error: Refresh and try again.', '#f44336')
-                    });
+    let addressList = [];
+    // get the addresses from the input fields
+    let inputVals = document.getElementsByClassName('tactile-searchbox-input');
+    for (let i = 0; i < inputVals.length; i++) {
+        let addressTxt = inputVals[i].ariaLabel
+        if (addressTxt.length > 16) {
+            if (addressTxt.substring(0, 15) === 'Starting point ') {
+                console.log(addressTxt.substring(15))
+                addressTxt = addressTxt.substring(15)
             }
-        });
-    });
+        }
+        if (addressTxt.length > 13) {
+            if (addressTxt.substring(0, 12) === 'Destination ') {
+                console.log(addressTxt.substring(12))
+                addressTxt = addressTxt.substring(12)
+            }
+        }
+        addressList.push(addressTxt)
+    }
+
+    // check to see if addressList was succesful (not if empty)
+    if (addressList === null || addressList === undefined || addressList.length === 0) {
+        showPopup('Error: Please Enter Stops Again', '#f44336');
+        return;
+    } else {
+
+        // call server on heroku to get optimized google maps route link
+        fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: (JSON.stringify({ splitAddressList: addressList }))
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
+                    // show error message if retryText method does not work
+                    showError('Error, Please Re-Enter Stops')
+                } else {
+                    chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
+                }
+            })
+            .catch((error) => {
+                console.log('Error:', error);
+                showError('Error, try refreshing the page')
+            });
+    }
 }
 
 /* async function openLink(curatedLink) {
