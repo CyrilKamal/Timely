@@ -2,45 +2,6 @@ var isButtonEnabled = false;
 var globalUrl = '';
 //everything past this is no longer frontend related (refactoring stuff)
 // calling the async background function to begin getting background info pre optimization
-chrome.runtime.onMessage.addListener(
-    function(message, sender, sendResponse) {
-        switch(message.type) {
-            case "getAddresses":
-
-                let inputAddressList = []
-                // checking to see if the class name is present
-                try {
-                    if (document.getElementsByClassName('tactile-searchbox-input')[0]) {
-                        // if so get the addresses from the input fields
-                        let inputVals = document.getElementsByClassName('tactile-searchbox-input');
-                        for (let i = 0; i < inputVals.length; i++){
-                            let addressTxt = inputVals[i].ariaLabel
-                            if (addressTxt.length > 16) {
-                                if (addressTxt.substring(0,15) === 'Starting point ') {
-                                    console.log(addressTxt.substring(15))
-                                    addressTxt = addressTxt.substring(15)
-                                }
-                            }
-                            if (addressTxt.length > 13) {
-                                if (addressTxt.substring(0,12) === 'Destination ') {
-                                    console.log(addressTxt.substring(12))
-                                    addressTxt = addressTxt.substring(12)
-                                }
-                            }
-                            inputAddressList.push(addressTxt)
-                        }
-                    }
-                } catch(err) {
-                    console.log(err)
-                }
-
-
-                sendResponse(inputAddressList);
-            break;
-        }
-    }
-);
-
 chrome.runtime.sendMessage({ action: "getActiveTabUrl" }, function (response) {
     if (response.url) {
         globalUrl = response.url
@@ -52,18 +13,145 @@ chrome.runtime.sendMessage({ action: "getActiveTabUrl" }, function (response) {
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.action === "urlUpdated") {
         globalUrl = request.url
-        console.log('global url updated: ', globalUrl)
     }
 });
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+
+
+function readLocalStorage(key) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get([key], function (result) {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+            } else {
+                resolve(result[key]);
+            }
+        });
+    });
+}
+
+
+const writeLocalStorage = (key, value) => {
+    chrome.storage.local.set({ [key]: value });
+};
+
+async function getTotal() {
+    try {
+        const value = await readLocalStorage("totalTimeSaved");
+        return JSON.parse(value);
+    } catch (err) {
+        return { previous_total: "000 day 00 hr 00 min", current_addition: 0 };
+    }
+}
+
+
+/*
+// DEVELOPER NOTES FOR READ-ME, this FUNCTION BELOW IS FOR DELETING NOT USED IN RELEASE, BUT DEF IN DEBUG MODEs
+function removeKeyFromStorage(key) {
+    return new Promise(function (resolve, reject) {
+        chrome.storage.local.remove(key, function () {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+
+
+DEVELOPER NOTES TO ADD TO READ.ME, This function can be called as a full-proof way to make sure to let an async call run syncrhonously afterwards
+ //REMOVE key-value pair from storage
+ removeKeyFromStorage(key).then(() => {
+      console.log("Key-value pair removed from storage");
+    });
+
+*/
+
+
+
+function addTime(totalTime, timeToAdd) {
+    const totalPattern = /(\d{3}) day (\d{2}) hr (\d{2}) min/;
+    const addPattern = /(\d{1,2}) hr (\d{1,2}) min/;
+    const totalMatch = totalPattern.exec(totalTime);
+    const addMatch = addPattern.exec(timeToAdd);
+
+    if (totalMatch === null) {
+        throw new Error(`Invalid totalTime: ${totalTime}`);
+    }
+
+    if (addMatch === null) {
+        throw new Error(`Invalid timeToAdd: ${timeToAdd}`);
+    }
+
+    const totalDays = parseInt(totalMatch[1]);
+    const totalHours = parseInt(totalMatch[2]);
+    const totalMinutes = parseInt(totalMatch[3]);
+
+    const addHours = parseInt(addMatch[1]);
+    const addMinutes = parseInt(addMatch[2]);
+
+    const totalMinutesWithDays = totalMinutes + totalHours * 60 + totalDays * 24 * 60;
+    const addMinutesWithDays = addMinutes + addHours * 60;
+
+    const newTotalMinutes = totalMinutesWithDays + addMinutesWithDays;
+    const newDays = Math.floor(newTotalMinutes / (24 * 60));
+    const newHours = Math.floor((newTotalMinutes % (24 * 60)) / 60);
+    const newMinutes = newTotalMinutes % 60;
+
+    return `${newDays.toString().padStart(3, '0')} day ${newHours.toString().padStart(2, '0')} hr ${newMinutes.toString().padStart(2, '0')} min`;
+}
+
+
+chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
     if (request.action === "urlUpdated") {
         globalUrl = request.url;
     } else if (request.action === "showSuccessPopup") {
-        showPopup('You just saved: ' + request.timeSaved, '#4BB543');
+        //save then show
+        let total;
+        const key = "totalTimeSaved";
+        console.log(JSON.stringify(request.timeSaved));
+
+
+
+        try {
+            total = await getTotal();
+        } catch (err) {
+            console.error(err);
+            total = { previous_total: "000 day 00 hr 00 min", current_addition: 0 };
+        }
+
+        console.log(total.previous_total);
+        total.previous_total = addTime(total.previous_total, request.timeSaved);
+        //total.previous_total += request.timeSaved;
+        total.current_addition = request.timeSaved;
+
+
+
+        // SET RESPONSE
+
+        // Save new total
+        chrome.storage.local.set({ [key]: JSON.stringify(total) }, function () {
+            console.log(`Saved ${JSON.stringify(total)} to local storage`);
+        });
+
+
+
+        // Set response
+        sendResponse(total);
+
+        for (const key in localStorage) {
+            const value = localStorage.getItem(key);
+            console.log(`Key: ${key}, Value: ${value}`);
+        }
+
+
+
+
+        showPopup('You just saved: ' + JSON.stringify(request.timeSaved) + '\nTotal time saved: ' + total.previous_total, '#4BB543');
     }
 });
-
 
 async function background(url) {
     console.log('yo its main :D')
@@ -122,55 +210,48 @@ async function getOptimizedLink(addressList, url) {
 }
 
 function retryText(url) {
-    let addressList = [];
-    // get the addresses from the input fields
-    let inputVals = document.getElementsByClassName('tactile-searchbox-input');
-    for (let i = 0; i < inputVals.length; i++) {
-        let addressTxt = inputVals[i].ariaLabel
-        if (addressTxt.length > 16) {
-            if (addressTxt.substring(0, 15) === 'Starting point ') {
-                console.log(addressTxt.substring(15))
-                addressTxt = addressTxt.substring(15)
-            }
-        }
-        if (addressTxt.length > 13) {
-            if (addressTxt.substring(0, 12) === 'Destination ') {
-                console.log(addressTxt.substring(12))
-                addressTxt = addressTxt.substring(12)
-            }
-        }
-        addressList.push(addressTxt)
-    }
 
-    // check to see if addressList was succesful (not if empty)
-    if (addressList === null || addressList === undefined || addressList.length === 0) {
-        showPopup('Error: Please Enter Stops Again', '#f44336');
-        return;
-    } else {
+    let addressList = []
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: "getAddresses" }, function (response) {
+            addressList = response
+            console.log(addressList)
 
-        // call server on heroku to get optimized google maps route link
-        fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: (JSON.stringify({ splitAddressList: addressList }))
-        })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Success:', data);
-                if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
-                    // show error message if retryText method does not work
-                    showError('Error, Please Re-Enter Stops')
-                } else {
-                    chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
-                }
-            })
-            .catch((error) => {
-                console.log('Error:', error);
-                showError('Error, try refreshing the page')
-            });
-    }
+            // check to see if addressList was succesful (not if empty)
+            if (addressList === null || addressList === undefined || addressList.length === 0) {
+                showPopup('Error: Please Enter Stops Again', '#f44336');
+                return;
+            } else {
+
+                // call server on heroku to get optimized google maps route link
+                fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: (JSON.stringify({ splitAddressList: addressList }))
+                })
+                    .then(response)
+                    .then(data => {
+                        console.log('Success:', data);
+                        if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
+                            // log potential error url in firebase
+                            // now show error message if input method does not work
+                            showPopup('Error, Please Re-Enter Stops', '#f44336')
+                        } else {
+                            chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
+                            //globalTimeSaved = data.timeDifference
+                            //openLink(data.link)
+                        }
+                    })
+                    .catch((error) => {
+                        console.log('Error:', error);
+                        // log potential error url in firebase
+                        showPopup('Error: Refresh and try again.', '#f44336')
+                    });
+            }
+        });
+    });
 }
 
 /* async function openLink(curatedLink) {
@@ -272,5 +353,4 @@ function init() {
 }
 
 init()
-
 
