@@ -2,6 +2,45 @@ var isButtonEnabled = false;
 var globalUrl = '';
 //everything past this is no longer frontend related (refactoring stuff)
 // calling the async background function to begin getting background info pre optimization
+chrome.runtime.onMessage.addListener(
+    function (message, sender, sendResponse) {
+        switch (message.type) {
+            case "getAddresses":
+
+                let inputAddressList = []
+                // checking to see if the class name is present
+                try {
+                    if (document.getElementsByClassName('tactile-searchbox-input')[0]) {
+                        // if so get the addresses from the input fields
+                        let inputVals = document.getElementsByClassName('tactile-searchbox-input');
+                        for (let i = 0; i < inputVals.length; i++) {
+                            let addressTxt = inputVals[i].ariaLabel
+                            if (addressTxt.length > 16) {
+                                if (addressTxt.substring(0, 15) === 'Starting point ') {
+                                    console.log(addressTxt.substring(15))
+                                    addressTxt = addressTxt.substring(15)
+                                }
+                            }
+                            if (addressTxt.length > 13) {
+                                if (addressTxt.substring(0, 12) === 'Destination ') {
+                                    console.log(addressTxt.substring(12))
+                                    addressTxt = addressTxt.substring(12)
+                                }
+                            }
+                            inputAddressList.push(addressTxt)
+                        }
+                    }
+                } catch (err) {
+                    console.log(err)
+                }
+
+
+                sendResponse(inputAddressList);
+                break;
+        }
+    }
+);
+
 chrome.runtime.sendMessage({ action: "getActiveTabUrl" }, function (response) {
     if (response.url) {
         globalUrl = response.url
@@ -9,14 +48,6 @@ chrome.runtime.sendMessage({ action: "getActiveTabUrl" }, function (response) {
         showPopup('Could not scrub URL', '#f44336');
     }
 });
-
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    if (request.action === "urlUpdated") {
-        globalUrl = request.url
-    }
-});
-
-
 
 function readLocalStorage(key) {
     return new Promise((resolve, reject) => {
@@ -29,7 +60,6 @@ function readLocalStorage(key) {
         });
     });
 }
-
 
 const writeLocalStorage = (key, value) => {
     chrome.storage.local.set({ [key]: value });
@@ -147,9 +177,9 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         }
 
 
-
-
-        showPopup('You just saved: ' + JSON.stringify(request.timeSaved) + '\nTotal time saved: ' + total.previous_total, '#4BB543');
+        const message = `You just saved ${request.timeSaved.replace(/"/g, '')} of travel time!`;
+        showPopup(message, '#4BB543');
+        showPopup("Timely has saved you a total of: \n" + total.previous_total, '#4c8bf5')    
     }
 });
 
@@ -210,48 +240,55 @@ async function getOptimizedLink(addressList, url) {
 }
 
 function retryText(url) {
-
-    let addressList = []
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        chrome.tabs.sendMessage(tabs[0].id, { type: "getAddresses" }, function (response) {
-            addressList = response
-            console.log(addressList)
-
-            // check to see if addressList was succesful (not if empty)
-            if (addressList === null || addressList === undefined || addressList.length === 0) {
-                showPopup('Error: Please Enter Stops Again', '#f44336');
-                return;
-            } else {
-
-                // call server on heroku to get optimized google maps route link
-                fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: (JSON.stringify({ splitAddressList: addressList }))
-                })
-                    .then(response)
-                    .then(data => {
-                        console.log('Success:', data);
-                        if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
-                            // log potential error url in firebase
-                            // now show error message if input method does not work
-                            showPopup('Error, Please Re-Enter Stops', '#f44336')
-                        } else {
-                            chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
-                            //globalTimeSaved = data.timeDifference
-                            //openLink(data.link)
-                        }
-                    })
-                    .catch((error) => {
-                        console.log('Error:', error);
-                        // log potential error url in firebase
-                        showPopup('Error: Refresh and try again.', '#f44336')
-                    });
+    let addressList = [];
+    // get the addresses from the input fields
+    let inputVals = document.getElementsByClassName('tactile-searchbox-input');
+    for (let i = 0; i < inputVals.length; i++) {
+        let addressTxt = inputVals[i].ariaLabel
+        if (addressTxt.length > 16) {
+            if (addressTxt.substring(0, 15) === 'Starting point ') {
+                console.log(addressTxt.substring(15))
+                addressTxt = addressTxt.substring(15)
             }
-        });
-    });
+        }
+        if (addressTxt.length > 13) {
+            if (addressTxt.substring(0, 12) === 'Destination ') {
+                console.log(addressTxt.substring(12))
+                addressTxt = addressTxt.substring(12)
+            }
+        }
+        addressList.push(addressTxt)
+    }
+
+    // check to see if addressList was succesful (not if empty)
+    if (addressList === null || addressList === undefined || addressList.length === 0) {
+        showPopup('Error: Please Enter Stops Again', '#f44336');
+        return;
+    } else {
+
+        // call server on heroku to get optimized google maps route link
+        fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: (JSON.stringify({ splitAddressList: addressList }))
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
+                    // show error message if retryText method does not work
+                    showError('Error, Please Re-Enter Stops')
+                } else {
+                    chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
+                }
+            })
+            .catch((error) => {
+                console.log('Error:', error);
+                showError('Error, try refreshing the page')
+            });
+    }
 }
 
 /* async function openLink(curatedLink) {
@@ -266,11 +303,13 @@ function retryText(url) {
 } */
 
 
+var popupHeight = 10; // Initialize popup height to 0
+
 function showPopup(errorMessage, backgroundColor) {
     var popup = document.createElement('div');
     popup.setAttribute('id', 'error-popup');
-    //popup.setAttribute('style', 'position: fixed; top: 10px; right: 10px; z-index: 1000; background-color: #f44336; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
-    popup.setAttribute('style', 'position: fixed; top: 10px; right: 10px; z-index: 1000; background-color: ' + backgroundColor + '; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
+    popup.setAttribute('style', 'position: fixed; top: ' + popupHeight + 'px; right: 10px; z-index: 1000; background-color: ' + backgroundColor + '; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
+
     var closeButton = document.createElement('button');
     closeButton.setAttribute('style', 'background: none; border: none; color:white; font-size: 16px; cursor: pointer; margin-right: 8px;');
     closeButton.innerHTML = '&times;';
@@ -285,10 +324,12 @@ function showPopup(errorMessage, backgroundColor) {
     popup.appendChild(closeButton);
     popup.appendChild(message);
     document.body.appendChild(popup);
+    popupHeight += popup.offsetHeight + 10; // Add the height of the popup and some margin to the total popup height
     setTimeout(() => {
         popup.remove();
     }, 5000);
 }
+
 function AddRouteButton() {
     var parentElement = document.querySelector(".dryRY");
     if (parentElement && !isButtonEnabled) { //button not enable yet
