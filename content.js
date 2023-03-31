@@ -142,33 +142,33 @@ function getCurrency(totalTime, avg_speed_km_h = 60, fuel_consumption_l_100km = 
     const addMatch = addPattern.exec(totalTime);
 
     let totalMinutesWithDays;
-   
+
 
     if (totalMatch === null) {
         //at this point we know we're adding current time and not total time, if it's null here then it's a bad totalTime
-        if (addMatch ==null){
+        if (addMatch == null) {
 
             throw new Error(`Invalid totalTime: ${totalTime}`);
-        }else{
+        } else {
 
-         
+
             const addHours = parseInt(addMatch[1]);
             const addMinutes = parseInt(addMatch[2]);
-            
+
             totalMinutesWithDays = addMinutes + addHours * 60;
 
         }
-         
-       
-    }else{
 
 
-    const totalDays = parseInt(totalMatch[1]);
-    const totalHours = parseInt(totalMatch[2]);
-    const totalMinutes = parseInt(totalMatch[3]);
+    } else {
 
 
-    totalMinutesWithDays = totalMinutes + totalHours * 60 + totalDays * 24 * 60;
+        const totalDays = parseInt(totalMatch[1]);
+        const totalHours = parseInt(totalMatch[2]);
+        const totalMinutes = parseInt(totalMatch[3]);
+
+
+        totalMinutesWithDays = totalMinutes + totalHours * 60 + totalDays * 24 * 60;
     }
 
     // total minutes With Days //minutes to money --> assumption 60km/h 1km/minute 10L/100km 1L/1km --> 1L/minute $1.50 per L 
@@ -190,6 +190,50 @@ function getCurrency(totalTime, avg_speed_km_h = 60, fuel_consumption_l_100km = 
 
     return money.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
+
+function getCO2EmissionsSaved(totalTime, avg_speed_km_h = 60, fuel_consumption_l_100km = 10, co2_emissions_g_per_l = 2.3) {
+    const totalPattern = /(\d{3}) day (\d{2}) hr (\d{2}) min/;
+    const addPattern = /(\d{1,2}) hr (\d{1,2}) min/;
+    const totalMatch = totalPattern.exec(totalTime);
+    const addMatch = addPattern.exec(totalTime);
+
+    let totalMinutesWithDays;
+
+    if (totalMatch === null) {
+        //at this point we know we're adding current time and not total time, if it's null here then it's a bad totalTime
+        if (addMatch == null) {
+            throw new Error(`Invalid totalTime: ${totalTime}`);
+        } else {
+            const addHours = parseInt(addMatch[1]);
+            const addMinutes = parseInt(addMatch[2]);
+
+            totalMinutesWithDays = addMinutes + addHours * 60;
+        }
+    } else {
+        const totalDays = parseInt(totalMatch[1]);
+        const totalHours = parseInt(totalMatch[2]);
+        const totalMinutes = parseInt(totalMatch[3]);
+
+        totalMinutesWithDays = totalMinutes + totalHours * 60 + totalDays * 24 * 60;
+    }
+
+    // total minutes With Days //minutes to CO2 emissions saved --> assumption 60km/h 1km/minute 10L/100km 2.3g/CO2 per L
+    // totalMinutes --> 1km/minute --> 1L/100km --> CO2 emissions g/minute
+
+    // variables --> average speed (km/h) --> fuel consumption (L/100km) --> CO2 emissions (g/L)
+    // 60km/hour --> /60 --> km/min
+    let km_per_m = avg_speed_km_h / 60;
+    //km/minute L/100km  / 100
+    let l_per_m = km_per_m * fuel_consumption_l_100km / 100;
+
+    // l/m * g/l  = g/m 
+    let co2_emissions_per_minute = l_per_m * co2_emissions_g_per_l;
+
+    let co2_emissions_saved = co2_emissions_per_minute * totalMinutesWithDays;
+
+    return co2_emissions_saved.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' g';
+}
+
 
 chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
     if (request.action === "urlUpdated") {
@@ -236,13 +280,13 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
 
 
 
-        const message = `You just saved ${request.timeSaved.replace(/"/g, '')} of travel time!\nYou also saved ${getCurrency(request.timeSaved)}`;
+        const message = `You just saved ${request.timeSaved.replace(/"/g, '')} of travel time and ${getCurrency(request.timeSaved)} \n and ${getCO2EmissionsSaved(request.timeSaved)} of CO2`;
 
 
-        showPopup(message, '#4BB543', 'timely now');
-        showPopup("Congratulations! Saving the world one trip at a time!\n\n" +
-            "Total Time Saved with Timely: " + total.previous_total
-            + "\nTotal Money Saved with Timely: " + getCurrency(total.previous_total), '#4c8bf5', 'timely wallet')
+        showPopup(message, '#4BB543');
+        showPopup("Total Time Saved with Timely: " + total.previous_total
+            + "\nTotal Money Saved with Timely: " + getCurrency(total.previous_total)
+            + "\nTotal CO2 Emissions Saved with Timely: " + getCO2EmissionsSaved(total.previous_total), '#4c8bf5')
     }
 });
 
@@ -368,7 +412,7 @@ function retryText(url) {
 
 var popupHeight = 10; // Initialize popup height to 0
 
-function showPopup(errorMessage, backgroundColor, title, font_size = 16) {
+function showPopup(errorMessage, backgroundColor) {
     var popup = document.createElement('div');
     popup.setAttribute('id', 'error-popup');
     popup.setAttribute('style', 'position: fixed; top: ' + popupHeight + 'px; right: 10px; z-index: 1000; background-color: ' + backgroundColor + '; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
@@ -381,22 +425,11 @@ function showPopup(errorMessage, backgroundColor, title, font_size = 16) {
     });
 
     var message = document.createElement('span');
-    message.setAttribute('style', 'display: inline-block; vertical-align: middle; font-size: ' + font_size + 'px;');
+    message.setAttribute('style', 'display: inline-block; vertical-align: middle;');
     message.innerText = errorMessage;
 
     popup.appendChild(closeButton);
-    if (title != undefined) {
-        var titleMessage = document.createElement('span');
-        font_size += 12;
-        titleMessage.setAttribute('style', 'display: inline-block; vertical-align: middle; font-size: ' + font_size + 'px; font-weight: bold');
-        titleMessage.innerText = title + '\n';
-        titleMessage.append(message)
-        popup.appendChild(titleMessage)
-    } else {
-        popup.appendChild(message);
-    }
-
-
+    popup.appendChild(message);
     document.body.appendChild(popup);
     popupHeight += popup.offsetHeight + 10; // Add the height of the popup and some margin to the total popup height
     setTimeout(() => {
