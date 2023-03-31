@@ -3,8 +3,8 @@ var globalUrl = '';
 //everything past this is no longer frontend related (refactoring stuff)
 // calling the async background function to begin getting background info pre optimization
 chrome.runtime.onMessage.addListener(
-    function(message, sender, sendResponse) {
-        switch(message.type) {
+    function (message, sender, sendResponse) {
+        switch (message.type) {
             case "getAddresses":
 
                 let inputAddressList = []
@@ -13,16 +13,16 @@ chrome.runtime.onMessage.addListener(
                     if (document.getElementsByClassName('tactile-searchbox-input')[0]) {
                         // if so get the addresses from the input fields
                         let inputVals = document.getElementsByClassName('tactile-searchbox-input');
-                        for (let i = 0; i < inputVals.length; i++){
+                        for (let i = 0; i < inputVals.length; i++) {
                             let addressTxt = inputVals[i].ariaLabel
                             if (addressTxt.length > 16) {
-                                if (addressTxt.substring(0,15) === 'Starting point ') {
+                                if (addressTxt.substring(0, 15) === 'Starting point ') {
                                     console.log(addressTxt.substring(15))
                                     addressTxt = addressTxt.substring(15)
                                 }
                             }
                             if (addressTxt.length > 13) {
-                                if (addressTxt.substring(0,12) === 'Destination ') {
+                                if (addressTxt.substring(0, 12) === 'Destination ') {
                                     console.log(addressTxt.substring(12))
                                     addressTxt = addressTxt.substring(12)
                                 }
@@ -30,13 +30,13 @@ chrome.runtime.onMessage.addListener(
                             inputAddressList.push(addressTxt)
                         }
                     }
-                } catch(err) {
+                } catch (err) {
                     console.log(err)
                 }
 
 
                 sendResponse(inputAddressList);
-            break;
+                break;
         }
     }
 );
@@ -49,21 +49,139 @@ chrome.runtime.sendMessage({ action: "getActiveTabUrl" }, function (response) {
     }
 });
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    if (request.action === "urlUpdated") {
-        globalUrl = request.url
-        console.log('global url updated: ', globalUrl)
-    }
-});
+function readLocalStorage(key) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get([key], function (result) {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+            } else {
+                resolve(result[key]);
+            }
+        });
+    });
+}
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+const writeLocalStorage = (key, value) => {
+    chrome.storage.local.set({ [key]: value });
+};
+
+async function getTotal() {
+    try {
+        const value = await readLocalStorage("totalTimeSaved");
+        return JSON.parse(value);
+    } catch (err) {
+        return { previous_total: "000 day 00 hr 00 min", current_addition: 0 };
+    }
+}
+
+
+/*
+// DEVELOPER NOTES FOR READ-ME, this FUNCTION BELOW IS FOR DELETING NOT USED IN RELEASE, BUT DEF IN DEBUG MODEs
+function removeKeyFromStorage(key) {
+    return new Promise(function (resolve, reject) {
+        chrome.storage.local.remove(key, function () {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+
+
+DEVELOPER NOTES TO ADD TO READ.ME, This function can be called as a full-proof way to make sure to let an async call run syncrhonously afterwards
+ //REMOVE key-value pair from storage
+ removeKeyFromStorage(key).then(() => {
+      console.log("Key-value pair removed from storage");
+    });
+
+*/
+
+
+
+function addTime(totalTime, timeToAdd) {
+    const totalPattern = /(\d{3}) day (\d{2}) hr (\d{2}) min/;
+    const addPattern = /(\d{1,2}) hr (\d{1,2}) min/;
+    const totalMatch = totalPattern.exec(totalTime);
+    const addMatch = addPattern.exec(timeToAdd);
+
+    if (totalMatch === null) {
+        throw new Error(`Invalid totalTime: ${totalTime}`);
+    }
+
+    if (addMatch === null) {
+        throw new Error(`Invalid timeToAdd: ${timeToAdd}`);
+    }
+
+    const totalDays = parseInt(totalMatch[1]);
+    const totalHours = parseInt(totalMatch[2]);
+    const totalMinutes = parseInt(totalMatch[3]);
+
+    const addHours = parseInt(addMatch[1]);
+    const addMinutes = parseInt(addMatch[2]);
+
+    const totalMinutesWithDays = totalMinutes + totalHours * 60 + totalDays * 24 * 60;
+    const addMinutesWithDays = addMinutes + addHours * 60;
+
+    const newTotalMinutes = totalMinutesWithDays + addMinutesWithDays;
+    const newDays = Math.floor(newTotalMinutes / (24 * 60));
+    const newHours = Math.floor((newTotalMinutes % (24 * 60)) / 60);
+    const newMinutes = newTotalMinutes % 60;
+
+    return `${newDays.toString().padStart(3, '0')} day ${newHours.toString().padStart(2, '0')} hr ${newMinutes.toString().padStart(2, '0')} min`;
+}
+
+
+chrome.runtime.onMessage.addListener(async function (request, sender, sendResponse) {
     if (request.action === "urlUpdated") {
         globalUrl = request.url;
     } else if (request.action === "showSuccessPopup") {
-        showPopup('You just saved: ' + request.timeSaved, '#4BB543');
+        //save then show
+        let total;
+        const key = "totalTimeSaved";
+        console.log(JSON.stringify(request.timeSaved));
+
+
+
+        try {
+            total = await getTotal();
+        } catch (err) {
+            console.error(err);
+            total = { previous_total: "000 day 00 hr 00 min", current_addition: 0 };
+        }
+
+        console.log(total.previous_total);
+        total.previous_total = addTime(total.previous_total, request.timeSaved);
+        //total.previous_total += request.timeSaved;
+        total.current_addition = request.timeSaved;
+
+
+
+        // SET RESPONSE
+
+        // Save new total
+        chrome.storage.local.set({ [key]: JSON.stringify(total) }, function () {
+            console.log(`Saved ${JSON.stringify(total)} to local storage`);
+        });
+
+
+
+        // Set response
+        sendResponse(total);
+
+        for (const key in localStorage) {
+            const value = localStorage.getItem(key);
+            console.log(`Key: ${key}, Value: ${value}`);
+        }
+
+
+        const message = `You just saved ${request.timeSaved.replace(/"/g, '')} of travel time!`;
+        showPopup(message, '#4BB543');
+        showPopup("Timely has saved you a total of: \n" + total.previous_total, '#4c8bf5')    
     }
 });
-
 
 async function background(url) {
     console.log('yo its main :D')
@@ -185,11 +303,13 @@ function retryText(url) {
 } */
 
 
+var popupHeight = 10; // Initialize popup height to 0
+
 function showPopup(errorMessage, backgroundColor) {
     var popup = document.createElement('div');
     popup.setAttribute('id', 'error-popup');
-    //popup.setAttribute('style', 'position: fixed; top: 10px; right: 10px; z-index: 1000; background-color: #f44336; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
-    popup.setAttribute('style', 'position: fixed; top: 10px; right: 10px; z-index: 1000; background-color: ' + backgroundColor + '; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
+    popup.setAttribute('style', 'position: fixed; top: ' + popupHeight + 'px; right: 10px; z-index: 1000; background-color: ' + backgroundColor + '; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
+
     var closeButton = document.createElement('button');
     closeButton.setAttribute('style', 'background: none; border: none; color:white; font-size: 16px; cursor: pointer; margin-right: 8px;');
     closeButton.innerHTML = '&times;';
@@ -204,10 +324,12 @@ function showPopup(errorMessage, backgroundColor) {
     popup.appendChild(closeButton);
     popup.appendChild(message);
     document.body.appendChild(popup);
+    popupHeight += popup.offsetHeight + 10; // Add the height of the popup and some margin to the total popup height
     setTimeout(() => {
         popup.remove();
     }, 5000);
 }
+
 function AddRouteButton() {
     var parentElement = document.querySelector(".dryRY");
     if (parentElement && !isButtonEnabled) { //button not enable yet
@@ -272,5 +394,4 @@ function init() {
 }
 
 init()
-
 
