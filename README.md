@@ -6,7 +6,7 @@ A pop-up window that appears after clicking the optimize route button, displayin
 A feature that rearranges intermediate waypoints in a Google Maps route to help reduce carbon emissions and save users time, money, and gas.
 A total time saved counter that shows users how much time they have saved using the Timely extension.
 ## Demo
-Click [HERE](https://addLinkHere) to check it out!
+Click [HERE](https://youtu.be/o6lYZ-up2CI) to check it out!
 
 ## Usage
 ### 1. Ensure you have a Chromium based browser to load our extension into.
