@@ -289,7 +289,6 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
                 "Total Money Saved": `${getCurrency(total.previous_total)}`,
                 "Total CO2 Emissions Saved": `${getCO2EmissionsSaved(total.previous_total)}`
             })
-       
     }
 });
 
@@ -413,7 +412,7 @@ function showPopup(backgroundColor, title = "", message = {}) {
     popup.setAttribute("class", "popup");
     popup.setAttribute(
         "style",
-        `position: fixed; top: ${popupHeight}px; right: 10px; z-index: 1000; background-color: ${backgroundColor}; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);`
+        `position: fixed; top: ${popupHeight}px; right: 10px; z-index: 1000; background-color: ${backgroundColor}; color: white; padding: 10px 15px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);`
     );
 
     if (title !== "") {
@@ -428,7 +427,7 @@ function showPopup(backgroundColor, title = "", message = {}) {
     if (message) {
         const popupMessage = document.createElement("div");
         popupMessage.setAttribute("class", "popup-message");
-        popupMessage.setAttribute("style", "font-size: 16px; text-align: left;");
+        popupMessage.setAttribute("style", "font-size: 14px; text-align: left;");
 
         //go through each one
         for (const key in message) {
@@ -437,11 +436,11 @@ function showPopup(backgroundColor, title = "", message = {}) {
             keyElement.innerText = key + ':';
 
             var valueElement = document.createElement('span');
-            valueElement.setAttribute('style', 'display: inline-block; margin-left: 5px; color: #000080' );
+            valueElement.setAttribute('style', 'display: inline-block; margin-left: 5px; color: #000080; white-space: nowrap;');
             valueElement.innerHTML = `<strong> ${message[key]} </strong>`;
 
             var messageElement = document.createElement('div');
-            messageElement.style.cssText = "overflow: auto; margin-bottom: 20px;"; // adding margin betwee each key
+            messageElement.style.cssText = "overflow: auto; margin-bottom: 5px;"; // adding margin betwee each key
 
             messageElement.appendChild(keyElement);
             messageElement.appendChild(valueElement);
@@ -451,11 +450,12 @@ function showPopup(backgroundColor, title = "", message = {}) {
         popup.appendChild(popupMessage);
     }
 
+
     const closeButton = document.createElement("button");
     closeButton.setAttribute("class", "popup-close-button");
     closeButton.setAttribute(
         "style",
-        "background: none; border: none; color:white; font-size: 20px; cursor: pointer; position: absolute; top: 10px; right: 10px;"
+        "background: none; border: none; color:white; font-size: 20px; cursor: pointer; position: absolute; top: 5px; right: 5px;"
     );
     closeButton.innerHTML = "&times;";
     closeButton.addEventListener("click", function () {
@@ -488,7 +488,6 @@ function showPopup(backgroundColor, title = "", message = {}) {
         }
     }, 10000);
 }
-
 
 function getTextColor(backgroundColor) {
     // Calculate the perceived brightness of the background color
