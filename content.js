@@ -277,16 +277,19 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
             console.log(`Key: ${key}, Value: ${value}`);
         }
 
-
-
-
-        const message = `You just saved ${request.timeSaved.replace(/"/g, '')} of travel time and ${getCurrency(request.timeSaved)} \n and ${getCO2EmissionsSaved(request.timeSaved)} of CO2`;
-
-
-        showPopup(message, '#4BB543');
-        showPopup("Total Time Saved with Timely: " + total.previous_total
-            + "\nTotal Money Saved with Timely: " + getCurrency(total.previous_total)
-            + "\nTotal CO2 Emissions Saved with Timely: " + getCO2EmissionsSaved(total.previous_total), '#4c8bf5')
+        showPopup('#AADAFF', 'Timely Now',
+            {
+                "Travel Time Saved": `${request.timeSaved.replace(/"/g, '')}`,
+                "Money Saved": `${getCurrency(request.timeSaved)}`,
+                "CO2 Emissions Saved": `${getCO2EmissionsSaved(request.timeSaved)}`
+            })
+        showPopup('#C3ECB2', 'Timely Wallet',
+            {
+                "Total Travel Time Saved": `${total.previous_total}`,
+                "Total Money Saved": `${getCurrency(total.previous_total)}`,
+                "Total CO2 Emissions Saved": `${getCO2EmissionsSaved(total.previous_total)}`
+            })
+       
     }
 });
 
@@ -398,44 +401,108 @@ function retryText(url) {
     }
 }
 
-/* async function openLink(curatedLink) {
-    chrome.tabs.create({ URL: curatedLink }, function (newTab) {
-        chrome.webNavigation.onCompleted.addListener(function listener(details) {
-            if (details.tabId === newTab.id) {
-                chrome.webNavigation.onCompleted.removeListener(listener);
-                chrome.tabs.sendMessage(newTab.id, { action: "showSuccessPopup" });
-            }
-        });
-    });
-} */
+// some variables to create on showPopup
+
+var popupWidth = 350; // Initialize popup width to 200 pixels
+var popupHeight = 10; // Initialize popup height to 10
+let popupContainer; // Initialize container for popups
 
 
-var popupHeight = 10; // Initialize popup height to 0
+function showPopup(backgroundColor, title = "", message = {}) {
+    const popup = document.createElement("div");
+    popup.setAttribute("class", "popup");
+    popup.setAttribute(
+        "style",
+        `position: fixed; top: ${popupHeight}px; right: 10px; z-index: 1000; background-color: ${backgroundColor}; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);`
+    );
 
-function showPopup(errorMessage, backgroundColor) {
-    var popup = document.createElement('div');
-    popup.setAttribute('id', 'error-popup');
-    popup.setAttribute('style', 'position: fixed; top: ' + popupHeight + 'px; right: 10px; z-index: 1000; background-color: ' + backgroundColor + '; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
+    if (title !== "") {
+        const popupTitle = document.createElement("div");
+        popupTitle.setAttribute("class", "popup-title");
+        popupTitle.setAttribute("style", "font-size: 20px; text-align: center;");
+        popupTitle.textContent = title;
+        popupTitle.style.color = '#0B3C5D';
+        popup.appendChild(popupTitle);
+    }
 
-    var closeButton = document.createElement('button');
-    closeButton.setAttribute('style', 'background: none; border: none; color:white; font-size: 16px; cursor: pointer; margin-right: 8px;');
-    closeButton.innerHTML = '&times;';
-    closeButton.addEventListener('click', function () {
+    if (message) {
+        const popupMessage = document.createElement("div");
+        popupMessage.setAttribute("class", "popup-message");
+        popupMessage.setAttribute("style", "font-size: 16px; text-align: left;");
+
+        //go through each one
+        for (const key in message) {
+            var keyElement = document.createElement('span');
+            keyElement.setAttribute('style', 'display: inline-block; width: 200px; color: teal; font-weight: bold;');
+            keyElement.innerText = key + ':';
+
+            var valueElement = document.createElement('span');
+            valueElement.setAttribute('style', 'display: inline-block; margin-left: 5px; color: #000080' );
+            valueElement.innerHTML = `<strong> ${message[key]} </strong>`;
+
+            var messageElement = document.createElement('div');
+            messageElement.style.cssText = "overflow: auto; margin-bottom: 20px;"; // adding margin betwee each key
+
+            messageElement.appendChild(keyElement);
+            messageElement.appendChild(valueElement);
+            popup.appendChild(messageElement);
+        }
+
+        popup.appendChild(popupMessage);
+    }
+
+    const closeButton = document.createElement("button");
+    closeButton.setAttribute("class", "popup-close-button");
+    closeButton.setAttribute(
+        "style",
+        "background: none; border: none; color:white; font-size: 20px; cursor: pointer; position: absolute; top: 10px; right: 10px;"
+    );
+    closeButton.innerHTML = "&times;";
+    closeButton.addEventListener("click", function () {
         popup.remove();
+        if (popupContainer && popupContainer.hasChildNodes()) {
+            popupHeight -= popupContainer.lastChild.offsetHeight + 10;
+        }
     });
-
-    var message = document.createElement('span');
-    message.setAttribute('style', 'display: inline-block; vertical-align: middle;');
-    message.innerText = errorMessage;
 
     popup.appendChild(closeButton);
-    popup.appendChild(message);
     document.body.appendChild(popup);
-    popupHeight += popup.offsetHeight + 10; // Add the height of the popup and some margin to the total popup height
+
+    popupHeight += popup.offsetHeight + 10;
+
+    if (!popupContainer) {
+        popupContainer = document.createElement("div");
+        popupContainer.setAttribute("class", "popup-container");
+        document.body.appendChild(popupContainer);
+    }
+
+    popupContainer.appendChild(popup);
+
+
     setTimeout(() => {
         popup.remove();
+        popupHeight -= popup.offsetHeight + 10;
+        if (popupHeight < 10) {
+            popupContainer.remove();
+            popupContainer = null;
+        }
     }, 10000);
 }
+
+
+function getTextColor(backgroundColor) {
+    // Calculate the perceived brightness of the background color
+    var r = parseInt(backgroundColor.substr(1, 2), 16);
+    var g = parseInt(backgroundColor.substr(3, 2), 16);
+    var b = parseInt(backgroundColor.substr(5, 2), 16);
+    var brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+    // Return white or black depending on perceived brightness
+    return brightness > 125 ? 'black' : 'white';
+}
+
+
+
 
 function AddRouteButton() {
     var parentElement = document.querySelector(".dryRY");

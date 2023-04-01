@@ -130,3 +130,12 @@ body {
     margin: 0;
 	overflow: hidden;
 }
+
+.popup {
+	display: inline-block;
+	vertical-align: top;
+	min-width: 50%; /* prevent left side from being squished */
+	padding-left: 20px;
+	padding-right: 20px;
+	box-sizing: border-box;
+}
