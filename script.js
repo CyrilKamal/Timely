@@ -1,5 +1,5 @@
-// loading bar
-let messageList = [
+// loading messages
+let loadingMessages = [
     'calculating distance',
     'mapping waypoints',
     'streamlining your route',
@@ -11,24 +11,24 @@ let messageList = [
     'sorting destinations'
 ]
 let index = 0;
-var interval = setInterval(loadingLoop, 200);
+var timer = setInterval(loadingLoop, 200);
 function loadingLoop() {
     var message = document.getElementById("messages");
-    message.innerHTML = messageList[index]
+    message.innerHTML = loadingMessages[index]
     message.style.fontSize = '15px'
-    if (index == messageList.length - 1) {
+    if (index == loadingMessages.length - 1) {
         index = 0;
     } else {
         index = index + 1;
     }
 }
 //everything past this is no longer frontend related (refactoring stuff)
-// scrub link asynchronusly to get Stops
+// scrub link asynch to get Stops
 background()
 async function background() {
     console.log('yo its main :D')
 
-    // get address list from url
+    // scrub address list from url
     let splitAddressList
     let url = ''
     await chrome.tabs.query({ active: true, lastFocusedWindow: true }, tabs => {
@@ -44,12 +44,12 @@ async function background() {
             if (splitAddressList.length < 4) {
                 showError('Please enter more stops')
             } else {
-                // calls main functino when data is ready
+                // calls main function when data is ready
                 getOptimizedLink(splitAddressList)
             }
         } catch (err) {
-            // could not retrieve addresses
-            showError('Create Route on Google Maps')
+            // could not get the stops
+            showError('Create A Route')
         }
     });
 }
@@ -59,7 +59,7 @@ async function getOptimizedLink(addressList, url) {
     console.log('address list', addressList)
     console.log('current url', url)
 
-    // call on server to get ol
+    // call cyclic server to get optimized link
     fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
         method: "POST",
         headers: {
@@ -71,37 +71,35 @@ async function getOptimizedLink(addressList, url) {
         .then(data => {
             console.log('Success:', data);
             if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
-
-                // ***
-                // INPUT TEXT METHOD (instead of url)
-                // ***
+                //retry with text
                 retryText(url)
-
             } else {
                 //openLink(data.link)
+                //SUCCESS open link now
                 chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
             }
         })
         .catch((error) => {
-            console.log('Error:', error);
-            showError('Error, try refreshing the page')
+            console.log('error:', error);
+            showError('Error: Refresh and try again.')
         });
 }
 
 function retryText(url) {
 
     let addressList = []
+    // get the addresses from the input fields
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         chrome.tabs.sendMessage(tabs[0].id, { type: "getAddresses" }, function (response) {
             addressList = response
             console.log(addressList)
-            // check to see if addressList was succesful (not if empty)
+            // check to see if addressList was succesful (if empty return from server that means unsuccesful so showerr)
             if (addressList === null || addressList === undefined || addressList.length === 0) {
                 showError('Error, Please Re-Enter Stops');
                 return;
             } else {
 
-                // call server on heroku to get optimized google maps route link
+                // call server on cyclic to get optimized google maps route link
                 fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
                     method: "POST",
                     headers: {
@@ -114,9 +112,10 @@ function retryText(url) {
                         console.log('Success:', data);
                         if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
                             // show error message if retryText method does not work
-                            showError('Error, Please Re-Enter Stops')
+                            showError('Error: Please Enter Stops Again')
                         } else {
-                            chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference }); 
+                            //SUCCESS open link now
+                            chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
                         }
                     })
                     .catch((error) => {
@@ -133,7 +132,7 @@ async function openLink(optimizedLink) {
 }
 
 function showError(err) {
-    clearInterval(interval);
+    clearInterval(timer);
     var message = document.getElementById("messages");
     message.innerHTML = err
     message.style.color = '#cf5d5d'

@@ -292,10 +292,11 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     }
 });
 
+// scrub link asynch to get Stops
 async function background(url) {
     console.log('yo its main :D')
 
-    // get address list from url
+    // scrub address list from url
     let splitAddressList
     try {
         let addressListStr = url.split('dir/')[1]
@@ -307,7 +308,7 @@ async function background(url) {
         if (splitAddressList.length < 4) {
             showPopup('Please enter at least 4 stops.', '#f44336')
         } else {
-            // calls main functino when data is ready
+            // calls main function when data is ready
             getOptimizedLink(splitAddressList)
         }
     } catch (err) {
@@ -321,7 +322,7 @@ async function getOptimizedLink(addressList, url) {
     console.log('address list', addressList)
     console.log('current url', url)
 
-    // call server to get optimized link
+    // call cyclic server to get optimized link
     fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
         method: "POST",
         headers: {
@@ -335,15 +336,15 @@ async function getOptimizedLink(addressList, url) {
             if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
                 //retry with text
                 retryText(url)
-
             } else {
+                //SUCCESS open link now
                 chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
                 //globalTimeSaved = data.timeDifference
                 //openLink(data.link)
             }
         })
         .catch((error) => {
-            console.log('Error:', error);
+            console.log('error:', error);
             showPopup('Error: Refresh and try again.', '#f44336')
         });
 }
@@ -369,13 +370,13 @@ function retryText(url) {
         addressList.push(addressTxt)
     }
 
-    // check to see if addressList was succesful (not if empty)
+    // // check to see if addressList was succesful (if empty return from server that means unsuccesful so showerr)
     if (addressList === null || addressList === undefined || addressList.length === 0) {
         showPopup('Error: Please Enter Stops Again', '#f44336');
         return;
     } else {
 
-        // call server on heroku to get optimized google maps route link
+        // call server on cyclic to get optimized google maps route link
         fetch('https://giddy-tuna-bedclothes.cyclic.app/ol', {
             method: "POST",
             headers: {
@@ -388,8 +389,9 @@ function retryText(url) {
                 console.log('Success:', data);
                 if (data.link.length === 0 || !data.link.includes("google.com/maps/")) {
                     // show error message if retryText method does not work
-                    showError('Error, Please Re-Enter Stops')
+                    showError('Error: Please Enter Stops Again')
                 } else {
+                    //SUCCESS open link now
                     chrome.runtime.sendMessage({ action: "openLink", curatedLink: data.link, timeSaved: data.timeDifference });
                 }
             })
