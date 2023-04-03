@@ -23,7 +23,7 @@ Click [HERE](https://youtu.be/o6lYZ-up2CI) to check it out!
 
 ## What's In Store
 * Create account system to allow user to sync time/money/gas saved with different devices
-* Allow users to allow bias for some stops (people dont always want the MOST optimized route)
+* Allow users to allow bias for some stops (people dont always want the MOST optimized route, example you might want your first stop to be the gas station to get snacks for the road)
 * Allow users to add their car model to have more accurate gas consumption statistics
 * Dynamically get gas prices to have more accurate gas price statistics
 * Create our own maps app using Google Maps Platform. This would bypass limitations on the Google Maps website and allow us to put our solution onto mobile and web using Flutter. By having our own maps app, we could control every little piece of the puzzle and provide a more tailored experience for our users.
