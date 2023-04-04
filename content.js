@@ -45,7 +45,7 @@ chrome.runtime.sendMessage({ action: "getActiveTabUrl" }, function (response) {
     if (response.url) {
         globalUrl = response.url
     } else {
-        showPopup('Could not scrub URL', '#f44336');
+        showErrPopup('Could not scrub URL', '#f44336');
     }
 });
 
@@ -306,14 +306,14 @@ async function background(url) {
         splitAddressList = addressListStr.split('/')
 
         if (splitAddressList.length < 4) {
-            showPopup('Please enter at least 4 stops.', '#f44336')
+            showErrPopup('Please enter at least 4 stops.', '#f44336')
         } else {
             // calls main function when data is ready
             getOptimizedLink(splitAddressList)
         }
     } catch (err) {
         // could not get the stops
-        showPopup('Create Route for Google Maps', '#f44336')
+        showErrPopup('Create Route for Google Maps', '#f44336')
     }
 }
 
@@ -345,7 +345,7 @@ async function getOptimizedLink(addressList, url) {
         })
         .catch((error) => {
             console.log('error:', error);
-            showPopup('Error: Refresh and try again.', '#f44336')
+            showErrPopup('Error: Refresh and try again.', '#f44336')
         });
 }
 
@@ -372,7 +372,7 @@ function retryText(url) {
 
     // // check to see if addressList was succesful (if empty return from server that means unsuccesful so showerr)
     if (addressList === null || addressList === undefined || addressList.length === 0) {
-        showPopup('Error: Please Enter Stops Again', '#f44336');
+        showErrPopup('Error: Please Enter Stops Again', '#f44336');
         return;
     } else {
 
@@ -397,7 +397,7 @@ function retryText(url) {
             })
             .catch((error) => {
                 console.log('Error:', error);
-                showError('Error, try refreshing the page')
+                showError('Error: Refresh and try again.')
             });
     }
 }
@@ -488,6 +488,30 @@ function showPopup(backgroundColor, title = "", message = {}) {
             popupContainer.remove();
             popupContainer = null;
         }
+    }, 10000);
+}
+
+
+function showErrPopup(errorMessage, backgroundColor) {
+    var popup = document.createElement('div');
+    popup.setAttribute('id', 'error-popup');
+    popup.setAttribute('style', 'position: fixed; top: ' + popupHeight + 'px; right: 10px; z-index: 1000; background-color: ' + backgroundColor + '; color: white; padding: 16px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);');
+
+    var closeButton = document.createElement('button');
+    closeButton.setAttribute('style', 'background: none; border: none; color:white; font-size: 16px; cursor: pointer; margin-right: 8px;');
+    closeButton.innerHTML = '&times;';
+    closeButton.addEventListener('click', function () {
+        popup.remove();
+    });
+    var message = document.createElement('span');
+    message.setAttribute('style', 'display: inline-block; vertical-align: middle;');
+    message.innerText = errorMessage;
+    popup.appendChild(closeButton);
+    popup.appendChild(message);
+    document.body.appendChild(popup);
+    popupHeight += popup.offsetHeight + 10; // Add the height of the popup and some margin to the total popup height
+    setTimeout(() => {
+        popup.remove();
     }, 10000);
 }
 
