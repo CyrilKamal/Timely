@@ -1,5 +1,6 @@
 var isButtonEnabled = false;
 var globalUrl = '';
+var buttonInjected = false;
 //everything past this is no longer frontend related (refactoring stuff)
 // calling the async background function to begin getting background info pre optimization
 chrome.runtime.onMessage.addListener(
@@ -531,7 +532,12 @@ function getTextColor(backgroundColor) {
 
 function AddRouteButton() {
     var parentElement = document.querySelector(".dryRY");
-    if (parentElement && !isButtonEnabled) { //button not enable yet
+    if (!parentElement || !parentElement.children.length) {
+        // Parent element doesn't exist or hasn't loaded yet, skip injection
+        return;
+    }
+
+    if (!buttonInjected) { //button not enable yet
         console.log("Optimize Route button added!");
         var secondLastChild = parentElement.lastChild.previousSibling;
 
@@ -553,6 +559,7 @@ function AddRouteButton() {
 
         var span = document.createElement('span');
         span.setAttribute('class', 'tXNTee L6Bbsd T7HQDc');
+        span.style.background = "linear-gradient(to right, #1a73e8, #50c6de)"; // Set the background gradient
 
         var div = document.createElement('div');
         div.setAttribute('class', 'OyjIsf');
@@ -561,11 +568,12 @@ function AddRouteButton() {
         img.setAttribute('class', 'k48Abe');
         img.setAttribute('alt', '');
         img.setAttribute('draggable', 'false');
-        img.setAttribute('src', 'https://cdn.discordapp.com/attachments/852958177167015936/1086869178348228689/icon.png');
+        img.setAttribute('src', 'https://cdn.discordapp.com/attachments/852958177167015936/1110937466984206356/icon.png');
 
         var innerSpan = document.createElement('span');
         innerSpan.setAttribute('class', 'uEubGf fontTitleSmall');
         innerSpan.innerText = 'Optimize Route';
+        innerSpan.style.color = 'white';
 
         span.appendChild(div);
         span.appendChild(img);
@@ -573,24 +581,25 @@ function AddRouteButton() {
 
         button.appendChild(span);
 
+        // Move the new button to the first position
+        var firstChild = parentElement.firstChild;
+        if (firstChild) {
+            parentElement.insertBefore(newElement, firstChild);
+        } else {
+            parentElement.appendChild(newElement);
+        }
+
         newElement.appendChild(button);
 
-        parentElement.insertBefore(newElement, secondLastChild);
-
-        isButtonEnabled = true;
-    } else if (!parentElement) { //if parent element for the button doesn't exist
-        isButtonEnabled = false;
-        console.log("There's an error while adding the button.");
+        buttonInjected = true;
     }
 }
 
 
 function init() {
+    AddRouteButton(); // Call immediately
 
-    window.onload = function () {
-        setInterval(AddRouteButton, 500);
-    };
+    setInterval(AddRouteButton, 500); // Call every 500 milliseconds
 }
 
-init()
-
+init();
