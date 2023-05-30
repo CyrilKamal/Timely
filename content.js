@@ -71,7 +71,7 @@ async function getTotal() {
         const value = await readLocalStorage("totalTimeSaved");
         return JSON.parse(value);
     } catch (err) {
-        return { previous_total: "000 day 00 hr 00 min", current_addition: 0 };
+        return { previous_total: "000 days 00 hrs 00 mins", current_addition: 0 };
     }
 }
 
@@ -103,12 +103,16 @@ DEVELOPER NOTES TO ADD TO READ.ME, This function can be called as a full-proof w
 
 
 function addTime(totalTime, timeToAdd) {
-    const totalPattern = /(\d{3}) day (\d{2}) hr (\d{2}) min/;
-    const addPattern = /(\d{1,2}) hr (\d{1,2}) min/;
+    const totalPattern = /(\d{3}) days (\d{2}) hrs (\d{2}) mins/;
+    const partialHrPattern = /(\d{2}) hrs (\d{2}) mins/;
+    const partialMinPattern = /(\d{2}) mins/;
+    const addPattern = /(\d{1,2}) hrs (\d{1,2}) mins/;
     const totalMatch = totalPattern.exec(totalTime);
+    const partialHrMatch = partialHrPattern.exec(totalTime);
+    const partialMinMatch = partialMinPattern.exec(totalTime);
     const addMatch = addPattern.exec(timeToAdd);
 
-    if (totalMatch === null) {
+    if (totalMatch === null && partialHrMatch === null && partialMinMatch === null) {
         throw new Error(`Invalid totalTime: ${totalTime}`);
     }
 
@@ -131,14 +135,24 @@ function addTime(totalTime, timeToAdd) {
     const newHours = Math.floor((newTotalMinutes % (24 * 60)) / 60);
     const newMinutes = newTotalMinutes % 60;
 
-    return `${newDays.toString().padStart(3, '0')} day ${newHours.toString().padStart(2, '0')} hr ${newMinutes.toString().padStart(2, '0')} min`;
+    let formattedTime = '';
+
+    if (newDays > 0) {
+        formattedTime += `${newDays.toString().padStart(3, '0')} days `;
+    }
+    if (newHours > 0) {
+        formattedTime += `${newHours.toString().padStart(2, '0')} hrs `;
+    }
+    formattedTime += `${newMinutes.toString().padStart(2, '0')} mins`;
+
+    return formattedTime;
 }
 
 
 // using a get function to receive the total time, then passing total time into this function to receive the currency
 function getCurrency(totalTime, avg_speed_km_h = 60, fuel_consumption_l_100km = 10, avg_gas_price_per_l = 1.50) {
-    const totalPattern = /(\d{3}) day (\d{2}) hr (\d{2}) min/;
-    const addPattern = /(\d{1,2}) hr (\d{1,2}) min/;
+    const totalPattern = /(\d{3}) days (\d{2}) hrs (\d{2}) mins/;
+    const addPattern = /(\d{1,2}) hrs (\d{1,2}) mins/;
     const totalMatch = totalPattern.exec(totalTime);
     const addMatch = addPattern.exec(totalTime);
 
@@ -193,8 +207,8 @@ function getCurrency(totalTime, avg_speed_km_h = 60, fuel_consumption_l_100km = 
 }
 
 function getCO2EmissionsSaved(totalTime, avg_speed_km_h = 60, fuel_consumption_l_100km = 10, co2_emissions_g_per_l = 2.3) {
-    const totalPattern = /(\d{3}) day (\d{2}) hr (\d{2}) min/;
-    const addPattern = /(\d{1,2}) hr (\d{1,2}) min/;
+    const totalPattern = /(\d{3}) days (\d{2}) hrs (\d{2}) mins/;
+    const addPattern = /(\d{1,2}) hrs (\d{1,2}) mins/;
     const totalMatch = totalPattern.exec(totalTime);
     const addMatch = addPattern.exec(totalTime);
 
@@ -251,7 +265,7 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
             total = await getTotal();
         } catch (err) {
             console.error(err);
-            total = { previous_total: "000 day 00 hr 00 min", current_addition: 0 };
+            total = { previous_total: "000 days 00 hrs 00 mins", current_addition: 0 };
         }
 
         console.log(total.previous_total);
@@ -278,17 +292,17 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
             console.log(`Key: ${key}, Value: ${value}`);
         }
 
-        showPopup('#AADAFF', 'Timely Now',
+        showPopup('#ffffff', 'Timely Now',
             {
-                "Travel Time Saved": `${request.timeSaved.replace(/"/g, '')}`,
+                "Time Saved": `${request.timeSaved.replace(/"/g, '')}`,
                 "Money Saved": `${getCurrency(request.timeSaved)}`,
-                "CO2 Emissions Saved": `${getCO2EmissionsSaved(request.timeSaved)}`
+                "CO2 Saved": `${getCO2EmissionsSaved(request.timeSaved)}`
             })
-        showPopup('#C3ECB2', 'Timely Wallet',
+        showPopup('#ffffff', 'Timely Wallet',
             {
-                "Total Travel Time Saved": `${total.previous_total}`,
+                "Total Time Saved": `${total.previous_total}`,
                 "Total Money Saved": `${getCurrency(total.previous_total)}`,
-                "Total CO2 Emissions Saved": `${getCO2EmissionsSaved(total.previous_total)}`
+                "Total CO2 Saved": `${getCO2EmissionsSaved(total.previous_total)}`
             })
     }
 });
@@ -404,46 +418,53 @@ function retryText(url) {
 }
 
 // some variables to create on showPopup
-
-var popupWidth = 350; // Initialize popup width to 200 pixels
+var popupWidth = 400; // Initialize popup width to 200 pixels
 var popupHeight = 10; // Initialize popup height to 10
 let popupContainer; // Initialize container for popups
-
 
 function showPopup(backgroundColor, title = "", message = {}) {
     const popup = document.createElement("div");
     popup.setAttribute("class", "popup");
     popup.setAttribute(
         "style",
-        `position: fixed; top: ${popupHeight}px; right: 10px; z-index: 1000; background-color: ${backgroundColor}; color: white; padding: 10px 15px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);`
+        `position: fixed; top: ${popupHeight}px; right: 10px; z-index: 1000; background-color: ${backgroundColor}; color: white; padding: 10px 15px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); width: ${popupWidth}px;`
     );
 
     if (title !== "") {
         const popupTitle = document.createElement("div");
         popupTitle.setAttribute("class", "popup-title");
-        popupTitle.setAttribute("style", "font-size: 20px; text-align: center;");
+        popupTitle.setAttribute(
+            "style",
+            "font-size: 20px; text-align: center; color: #202124; margin-bottom: 10px;font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 1rem; font-weight: 500; letter-spacing: 0; line-height: 1.5rem;"
+        );
         popupTitle.textContent = title;
-        popupTitle.style.color = '#0B3C5D';
         popup.appendChild(popupTitle);
     }
 
     if (message) {
         const popupMessage = document.createElement("div");
         popupMessage.setAttribute("class", "popup-message");
-        popupMessage.setAttribute("style", "font-size: 14px; text-align: left;");
+        popupMessage.setAttribute("style", "font-size: 14px; text-align: left; color: #202124; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 1rem; font-weight: 500; letter-spacing: 0; line-height: 1.5rem;");
 
         //go through each one
         for (const key in message) {
-            var keyElement = document.createElement('span');
-            keyElement.setAttribute('style', 'display: inline-block; width: 200px; color: teal; font-weight: bold;');
-            keyElement.innerText = key + ':';
+            var keyElement = document.createElement("span");
+            keyElement.setAttribute(
+                "style",
+                "display: inline-block; width: 200px; color: #202124; font-weight: bold; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 1rem; font-weight: 500; letter-spacing: 0; line-height: 1.5rem;"
+            );
+            keyElement.innerText = key + ":";
 
-            var valueElement = document.createElement('span');
-            valueElement.setAttribute('style', 'display: inline-block; margin-left: 5px; color: #000080; white-space: nowrap;');
+            var valueElement = document.createElement("span");
+            valueElement.setAttribute(
+                "style",
+                "display: inline-block; margin-left: 5px; color: #1a73e8; white-space: nowrap; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 1rem; font-weight: 500; letter-spacing: 0; line-height: 1.5rem;"
+            );
             valueElement.innerHTML = `<strong> ${message[key]} </strong>`;
 
-            var messageElement = document.createElement('div');
-            messageElement.style.cssText = "overflow: auto; margin-bottom: 5px;"; // adding margin betwee each key
+            var messageElement = document.createElement("div");
+            messageElement.style.cssText =
+                "overflow: auto; margin-bottom: 5px;"; // adding margin between each key
 
             messageElement.appendChild(keyElement);
             messageElement.appendChild(valueElement);
@@ -453,12 +474,11 @@ function showPopup(backgroundColor, title = "", message = {}) {
         popup.appendChild(popupMessage);
     }
 
-
     const closeButton = document.createElement("button");
     closeButton.setAttribute("class", "popup-close-button");
     closeButton.setAttribute(
         "style",
-        "background: none; border: none; color:white; font-size: 20px; cursor: pointer; position: absolute; top: 5px; right: 5px;"
+        "background: none; border: none; color:grey; font-size: 20px; cursor: pointer; position: absolute; top: 5px; right: 5px;"
     );
     closeButton.innerHTML = "&times;";
     closeButton.addEventListener("click", function () {
@@ -476,11 +496,14 @@ function showPopup(backgroundColor, title = "", message = {}) {
     if (!popupContainer) {
         popupContainer = document.createElement("div");
         popupContainer.setAttribute("class", "popup-container");
+        popupContainer.setAttribute(
+            "style",
+            "position: fixed; top: 100px; right: 10px; z-index: 1000;"
+        );
         document.body.appendChild(popupContainer);
     }
 
     popupContainer.appendChild(popup);
-
 
     setTimeout(() => {
         popup.remove();
