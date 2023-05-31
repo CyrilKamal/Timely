@@ -278,13 +278,13 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
             console.log(`Key: ${key}, Value: ${value}`);
         }
 
-        showPopup('#AADAFF', 'Timely Now',
+        showPopup('#FFFFFF', 'Timely Now',
             {
                 "Travel Time Saved": `${request.timeSaved.replace(/"/g, '')}`,
                 "Money Saved": `${getCurrency(request.timeSaved)}`,
                 "CO2 Emissions Saved": `${getCO2EmissionsSaved(request.timeSaved)}`
             })
-        showPopup('#C3ECB2', 'Timely Wallet',
+        showPopup('#FFFFFF', 'Timely Wallet',
             {
                 "Total Travel Time Saved": `${total.previous_total}`,
                 "Total Money Saved": `${getCurrency(total.previous_total)}`,
@@ -404,46 +404,69 @@ function retryText(url) {
 }
 
 // some variables to create on showPopup
-
-var popupWidth = 350; // Initialize popup width to 200 pixels
+var popupWidth = 400; // Initialize popup width to 200 pixels
 var popupHeight = 10; // Initialize popup height to 10
 let popupContainer; // Initialize container for popups
-
 
 function showPopup(backgroundColor, title = "", message = {}) {
     const popup = document.createElement("div");
     popup.setAttribute("class", "popup");
     popup.setAttribute(
         "style",
-        `position: fixed; top: ${popupHeight}px; right: 10px; z-index: 1000; background-color: ${backgroundColor}; color: white; padding: 10px 15px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);`
+        `position: fixed; top: ${popupHeight}px; right: 10px; z-index: 1000; background-color: ${backgroundColor}; color: white; padding: 10px 15px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); width: ${popupWidth}px;`
     );
+
+
+    // Add a new div element to the popup
+    const blueStrip = document.createElement('div');
+    blueStrip.style.backgroundColor = '#1a73e8';
+    blueStrip.style.width = '5px';
+    blueStrip.style.position = 'absolute';  // Change position to 'absolute'
+    blueStrip.style.top = '0';
+    blueStrip.style.left = '0';
+    blueStrip.style.height = '100%';
+    blueStrip.style.borderBottomLeftRadius = '15px';
+    blueStrip.style.borderTopLeftRadius = '15px';
+    blueStrip.style.overflow = 'hidden';
+
+    // Append the blue strip to the popup element
+    popup.appendChild(blueStrip);
 
     if (title !== "") {
         const popupTitle = document.createElement("div");
         popupTitle.setAttribute("class", "popup-title");
-        popupTitle.setAttribute("style", "font-size: 20px; text-align: center;");
+        popupTitle.setAttribute(
+            "style",
+            "font-size: 20px; text-align: center; color: #202124; margin-bottom: 10px;font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 1rem; font-weight: 500; letter-spacing: 0; line-height: 1.5rem;"
+        );
         popupTitle.textContent = title;
-        popupTitle.style.color = '#0B3C5D';
         popup.appendChild(popupTitle);
     }
 
     if (message) {
         const popupMessage = document.createElement("div");
         popupMessage.setAttribute("class", "popup-message");
-        popupMessage.setAttribute("style", "font-size: 14px; text-align: left;");
+        popupMessage.setAttribute("style", "font-size: 14px; text-align: left; color: #202124; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 1rem; font-weight: normal; letter-spacing: 0; line-height: 1.5rem;");
 
         //go through each one
         for (const key in message) {
-            var keyElement = document.createElement('span');
-            keyElement.setAttribute('style', 'display: inline-block; width: 200px; color: teal; font-weight: bold;');
-            keyElement.innerText = key + ':';
+            var keyElement = document.createElement("span");
+            keyElement.setAttribute(
+                "style",
+                "display: inline-block; width: 200px; color: #70757a; font-weight: bold; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 1rem; font-weight: normal; letter-spacing: 0; line-height: 1.5rem;"
+            );
+            keyElement.innerText = key + ":";
 
-            var valueElement = document.createElement('span');
-            valueElement.setAttribute('style', 'display: inline-block; margin-left: 5px; color: #000080; white-space: nowrap;');
-            valueElement.innerHTML = `<strong> ${message[key]} </strong>`;
+            var valueElement = document.createElement("span");
+            valueElement.setAttribute(
+                "style",
+                "display: inline-block; margin-left: 5px; color: #1a73e8; white-space: nowrap; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 1rem; font-weight: normal; letter-spacing: 0; line-height: 1.5rem;"
+            );
+            valueElement.innerHTML = `${message[key]}`;
 
-            var messageElement = document.createElement('div');
-            messageElement.style.cssText = "overflow: auto; margin-bottom: 5px;"; // adding margin betwee each key
+            var messageElement = document.createElement("div");
+            messageElement.style.cssText =
+                "overflow: auto; margin-bottom: 5px;"; // adding margin between each key
 
             messageElement.appendChild(keyElement);
             messageElement.appendChild(valueElement);
@@ -453,12 +476,11 @@ function showPopup(backgroundColor, title = "", message = {}) {
         popup.appendChild(popupMessage);
     }
 
-
     const closeButton = document.createElement("button");
     closeButton.setAttribute("class", "popup-close-button");
     closeButton.setAttribute(
         "style",
-        "background: none; border: none; color:white; font-size: 20px; cursor: pointer; position: absolute; top: 5px; right: 5px;"
+        "background: none; border: none; color:grey; font-size: 20px; cursor: pointer; position: absolute; top: 5px; right: 5px;"
     );
     closeButton.innerHTML = "&times;";
     closeButton.addEventListener("click", function () {
@@ -476,11 +498,14 @@ function showPopup(backgroundColor, title = "", message = {}) {
     if (!popupContainer) {
         popupContainer = document.createElement("div");
         popupContainer.setAttribute("class", "popup-container");
+        popupContainer.setAttribute(
+            "style",
+            "position: fixed; top: 100px; right: 10px; z-index: 1000;"
+        );
         document.body.appendChild(popupContainer);
     }
 
     popupContainer.appendChild(popup);
-
 
     setTimeout(() => {
         popup.remove();
@@ -489,7 +514,7 @@ function showPopup(backgroundColor, title = "", message = {}) {
             popupContainer.remove();
             popupContainer = null;
         }
-    }, 10000);
+    }, 15000);
 }
 
 
