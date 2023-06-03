@@ -611,6 +611,10 @@ function AddRouteButton() {
 
         newElement.appendChild(button);
     }
+    else if (parentElement.firstChild.id != "maps-optimize-route") {
+        //If button is no longer the first button, move the button to the first position
+            parentElement.insertBefore(document.getElementById("maps-optimize-route"), parentElement.firstChild);
+    }
 }
 
 
