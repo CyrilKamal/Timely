@@ -1,6 +1,4 @@
-var isButtonEnabled = false;
 var globalUrl = '';
-var buttonInjected = false;
 //everything past this is no longer frontend related (refactoring stuff)
 // calling the async background function to begin getting background info pre optimization
 chrome.runtime.onMessage.addListener(
@@ -553,8 +551,6 @@ function getTextColor(backgroundColor) {
 }
 
 
-
-
 function AddRouteButton() {
     var parentElement = document.querySelector(".dryRY");
     if (!parentElement || !parentElement.children.length) {
@@ -562,9 +558,8 @@ function AddRouteButton() {
         return;
     }
 
-    if (!buttonInjected) { //button not enable yet
+    if (!document.getElementById("maps-optimize-route")) { //if button does not exist
         console.log("Optimize Route button added!");
-        var secondLastChild = parentElement.lastChild.previousSibling;
 
         var newElement = document.createElement('div');
         newElement.setAttribute('class', 'KNfEk Rqu0ae ');
@@ -615,8 +610,10 @@ function AddRouteButton() {
         }
 
         newElement.appendChild(button);
-
-        buttonInjected = true;
+    }
+    else if (parentElement.firstChild.id != "maps-optimize-route") {
+        //If button is no longer the first button, move the button to the first position
+            parentElement.insertBefore(document.getElementById("maps-optimize-route"), parentElement.firstChild);
     }
 }
 
