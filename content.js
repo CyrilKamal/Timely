@@ -284,12 +284,32 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
             })
         showPopup('#FFFFFF', 'Timely Wallet',
             {
-                "Total Travel Time Saved": `${total.previous_total}`,
+                "Total Travel Time Saved": `${formatTimeString(total.previous_total)}`,
                 "Total Money Saved": `${getCurrency(total.previous_total)}`,
                 "Total CO2 Emissions Saved": `${getCO2EmissionsSaved(total.previous_total)}`
             })
     }
 });
+
+//Expecting a string in the format of "000 day 00 hr 00 min"
+function formatTimeString(input) {
+    const pattern = /\b\d+\b/g;
+
+    let match = input.match(pattern);
+
+    const timeUnits = ["day", "hr", "min"];
+
+    let combinedString = "";
+
+    for(let i = 0; i < match.length; i++) {
+        let num = parseInt(match[i]);
+        //Show time units for days only if day is greater than 0, show hours and minutes regardless
+        if(i > 0 || num > 0 )
+            combinedString += `${num} ${timeUnits[i]} `;
+    }
+
+    return combinedString;
+  }
 
 // scrub link asynch to get Stops
 async function background(url) {
