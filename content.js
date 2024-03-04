@@ -608,7 +608,7 @@ function AddRouteButton() {
         img.setAttribute('class', 'k48Abe');
         img.setAttribute('alt', '');
         img.setAttribute('draggable', 'false');
-        img.setAttribute('src', 'https://cdn.discordapp.com/attachments/852958177167015936/1110937466984206356/icon.png');
+        img.setAttribute('src', 'https://cdn.discordapp.com/attachments/852958177167015936/1110937466984206356/icon.png?ex=65f1b824&is=65df4324&hm=c33ae2802a23df4a3ef44b4575c8c8736816e221c645bd83b3bddb8344fd362c&');
 
         var innerSpan = document.createElement('span');
         innerSpan.setAttribute('class', 'uEubGf fontTitleSmall');
